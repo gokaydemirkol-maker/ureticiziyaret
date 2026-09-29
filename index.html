@@ -48,14 +48,37 @@ const REPORT_API_URL = "https://script.google.com/macros/s/AKfycbxqRebF_6MjL9iHN
 
 function sendReport(data) {
   if (!REPORT_API_URL || REPORT_API_URL.includes("BURAYA_")) return;
+
+  // GitHub Pages -> Google Apps Script arasında CORS/fetch sorunlarını
+  // önlemek için klasik form POST kullanılır.
   try {
-    fetch(REPORT_API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {"Content-Type": "text/plain;charset=utf-8"},
-      body: JSON.stringify(data)
-    }).catch(() => {});
-  } catch (e) {}
+    const iframeName = "report_" + Date.now();
+    const iframe = document.createElement("iframe");
+    iframe.name = iframeName;
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = REPORT_API_URL;
+    form.target = iframeName;
+    form.style.display = "none";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "payload";
+    input.value = JSON.stringify(data);
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+
+    setTimeout(() => {
+      try { form.remove(); iframe.remove(); } catch(e) {}
+    }, 5000);
+  } catch (e) {
+    console.log("Rapor gönderilemedi:", e);
+  }
 }
 </script>
 
