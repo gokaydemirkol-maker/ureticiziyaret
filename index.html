@@ -16,12 +16,48 @@ button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-ra
 <body>
 <div class="card">
 <h1>Üretici Ziyaret Sistemi</h1>
+<div style="margin:12px 0;">
+  <label style="display:block;font-weight:600;margin-bottom:6px;">Personel</label>
+  <input id="employeeName" placeholder="Ad Soyad"
+         style="width:100%;box-sizing:border-box;padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px;">
+</div>
+<script>
+(function(){
+  const el=document.getElementById("employeeName");
+  if(el){
+    el.value=localStorage.getItem("employeeName")||"";
+    el.addEventListener("input",()=>localStorage.setItem("employeeName",el.value.trim()));
+  }
+})();
+</script>
+
 <div class="producer" id="producer">Üretici seçilmedi</div>
 <div class="status" id="status">QR ile giriş yapıldığında üretici burada görünecek.</div>
 <button id="start" onclick="startVisit()" disabled>ZİYARETE BAŞLA</button>
 <button id="end" onclick="endVisit()" disabled class="secondary">ZİYARETİ BİTİR</button>
 <div class="small" id="info"></div>
 </div>
+
+
+<script>
+/* ===== MERKEZI RAPOR AYARLARI =====
+   Google Apps Script Web App URL'sini buraya yapıştırın.
+   Örn: https://script.google.com/macros/s/XXXX/exec
+*/
+const REPORT_API_URL = "https://script.google.com/macros/s/AKfycbxqRebF_6MjL9iHNLN575Sa-jW9Br07Y_CdgC-LAuoZruX-PCnQelpYOVhMww0Id7loUQ/exec";
+
+function sendReport(data) {
+  if (!REPORT_API_URL || REPORT_API_URL.includes("BURAYA_")) return;
+  try {
+    fetch(REPORT_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify(data)
+    }).catch(() => {});
+  } catch (e) {}
+}
+</script>
 
 <script>
 const producers={
