@@ -146,6 +146,14 @@ function startVisit(){
    };
 
    localStorage.setItem("activeVisit",JSON.stringify(visit));
+   sendReport({
+     type:"START",
+     producer:p.name,
+     producerKey:key,
+     entryIso:new Date(visit.startTimestamp).toISOString(),
+     employee:localStorage.getItem("employeeName")||"Personel",
+     distanceMeters:d
+   });
 
    statusEl.className="status ok";
    statusEl.innerHTML="🟢 Ziyaret başladı<br>Mesafe: "+d+" metre<br>Başlangıç: "+visit.startTime;
@@ -188,8 +196,17 @@ function endVisit(){
    const durationMs=Date.now()-visit.startTimestamp;
    const minutes=Math.max(0,Math.round(durationMs/60000));
 
-   // Merkezi kayıt sistemi sonraki aşamada eklenecek.
-   // Şimdilik bu cihazda güvenli test amacıyla tutuluyor.
+   sendReport({
+     type:"FINISH",
+     producer:p.name,
+     producerKey:key,
+     entryIso:new Date(visit.startTimestamp).toISOString(),
+     exitIso:new Date().toISOString(),
+     durationMinutes:minutes,
+     distanceMeters:d,
+     employee:localStorage.getItem("employeeName")||"Personel"
+   });
+
    const completed={
      producer:p.name,
      startTime:visit.startTime,
