@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Üretici Ziyaret Testi</title>
+<style>
+body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:20px;color:#17202a}
+.card{max-width:520px;margin:auto;background:white;border-radius:16px;padding:22px;box-shadow:0 4px 18px #0001}
+h1{font-size:22px;margin-top:0}.producer{font-size:26px;font-weight:700;margin:14px 0}
+button{width:100%;padding:15px;border:0;border-radius:10px;background:#111827;color:white;font-size:17px;margin-top:10px}
+button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-radius:10px;background:#f1f5f9;margin:14px 0;line-height:1.5}
+.ok{background:#dcfce7}.bad{background:#fee2e2}.small{font-size:13px;color:#64748b}
+table{width:100%;border-collapse:collapse;margin-top:15px}td,th{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Üretici Ziyaret Sistemi — TEST</h1>
+<div class="producer" id="producer">Üretici seçilmedi</div>
+<div class="status" id="status">QR ile giriş yapıldığında üretici burada görünecek.</div>
+<button id="start" onclick="startVisit()" disabled>ZİYARETE BAŞLA</button>
+<button id="end" onclick="endVisit()" disabled class="secondary">ZİYARETİ BİTİR</button>
+<div class="small" id="info"></div>
+<h3>Bu cihazdaki test kayıtları</h3>
+<table><thead><tr><th>Üretici</th><th>İşlem</th><th>Saat</th><th>Mesafe</th></tr></thead>
+<tbody id="log"></tbody></table>
+</div>
+<script>
+const producers={
+  lod: {name:"Lodos Ayakkabı", lat:41.0391997259411, lon:28.806444996881826},
+  mos: {name:"Mostar Ayakkabı", lat:41.19097164451511, lon:28.746879110381474}
+};
+let key=new URLSearchParams(location.search).get("p");
+let active=localStorage.getItem("activeVisit");
+if(key && producers[key]) {
+ document.getElementById("producer").textContent=producers[key].name;
+ document.getElementById("start").disabled=false;
+ document.getElementById("status").textContent="Konumunuzu doğrulamak için 'Ziyarete Başla'ya basın.";
+}
+function distance(lat1,lon1,lat2,lon2){
+ const R=6371000, r=Math.PI/180;
+ const a=Math.sin((lat2-lat1)*r/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lon2-lon1)*r/2)**2;
+ return 2*R*Math.asin(Math.sqrt(a));
+}
+function gps(cb){
+ if(!navigator.geolocation){alert("Bu tarayıcı konum bilgisini desteklemiyor.");return;}
+ navigator.geolocation.getCurrentPosition(cb,e=>{
+  document.getElementById("status").className="status bad";
+  document.getElementById("status").textContent="Konum alınamadı: "+e.message;
+ },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function now(){return new Date().toLocaleString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
+function save(x){let a=JSON.parse(localStorage.getItem("visits")||"[]");a.unshift(x);localStorage.setItem("visits",JSON.stringify(a));render();}
+function render(){let a=JSON.parse(localStorage.getItem("visits")||"[]");document.getElementById("log").innerHTML=a.map(x=>`<tr><td>${x.producer}</td><td>${x.action}</td><td>${x.time}</td><td>${x.distance??"-"}</td></tr>`).join("");}
+function startVisit(){
+ const p=producers[key];
+ document.getElementById("status").className="status";
+ document.getElementById("status").textContent="GPS konumu alınıyor...";
+ gps(pos=>{
+   let d=null, verified=true;
+   if(p.lat!==null) { d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon)); verified=d<=100; }
+   document.getElementById("status").className="status "+(verified?"ok":"bad");
+   document.getElementById("status").innerHTML=verified?
+    "🟢 Konum doğrulandı<br>Mesafe: "+(d===null?"test modu":d+" metre"):
+    "🔴 Konum doğrulanamadı<br>Üreticiye uzaklık: "+d+" metre";
+   if(!verified){document.getElementById("start").disabled=false;return;}
+   let v={producer:p.name,action:"Giriş",time:now(),distance:d,lat:pos.coords.latitude,lon:pos.coords.longitude};
+   localStorage.setItem("activeVisit",JSON.stringify(v));
+   save(v); document.getElementById("start").disabled=true; document.getElementById("end").disabled=false;
+ });
+}
+function endVisit(){
+ const p=producers[key];
+ gps(pos=>{
+  let v=JSON.parse(localStorage.getItem("activeVisit")||"null");
+  if(!v){alert("Aktif ziyaret bulunamadı.");return;}
+  let d=null;if(p.lat!==null)d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon));
+  save({producer:p.name,action:"Çıkış",time:now(),distance:d,lat:pos.coords.latitude,lon:pos.coords.longitude});
+  localStorage.removeItem("activeVisit");document.getElementById("start").disabled=false;document.getElementById("end").disabled=true;
+  document.getElementById("status").className="status ok";document.getElementById("status").textContent="🟢 Ziyaret tamamlandı.";
+ });
+}
+render();
+</script>
+</body></html>
