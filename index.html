@@ -11,7 +11,6 @@ h1{font-size:22px;margin-top:0}.producer{font-size:26px;font-weight:700;margin:1
 button{width:100%;padding:15px;border:0;border-radius:10px;background:#111827;color:white;font-size:17px;margin-top:10px}
 button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-radius:10px;background:#f1f5f9;margin:14px 0;line-height:1.5}
 .ok{background:#dcfce7}.bad{background:#fee2e2}.small{font-size:13px;color:#64748b}
-table{width:100%;border-collapse:collapse;margin-top:15px}td,th{padding:8px;border-bottom:1px solid #eee;text-align:left;font-size:13px}
 </style>
 </head>
 <body>
@@ -22,60 +21,161 @@ table{width:100%;border-collapse:collapse;margin-top:15px}td,th{padding:8px;bord
 <button id="start" onclick="startVisit()" disabled>ZİYARETE BAŞLA</button>
 <button id="end" onclick="endVisit()" disabled class="secondary">ZİYARETİ BİTİR</button>
 <div class="small" id="info"></div>
+</div>
+
 <script>
 const producers={
-  lod: {name:"Lodos Ayakkabı", lat:41.0391997259411, lon:28.806444996881826},
-  mos: {name:"Mostar Ayakkabı", lat:41.19097164451511, lon:28.746879110381474}
+  lod:{name:"Lodos Ayakkabı",lat:41.0391997259411,lon:28.806444996881826},
+  mos:{name:"Mostar Ayakkabı",lat:41.19097164451511,lon:28.746879110381474}
 };
-let key=new URLSearchParams(location.search).get("p");
-let active=localStorage.getItem("activeVisit");
-if(key && producers[key]) {
- document.getElementById("producer").textContent=producers[key].name;
- document.getElementById("start").disabled=false;
- document.getElementById("status").textContent=active ? "Aktif ziyaret devam ediyor. Ziyareti bitirmek için aşağıdaki butona basın." : "Konumunuzu doğrulamak için 'Ziyarete Başla'ya basın.";
-}
+
+const key=new URLSearchParams(location.search).get("p");
+const p=producers[key];
+const startBtn=document.getElementById("start");
+const endBtn=document.getElementById("end");
+const statusEl=document.getElementById("status");
+
 function distance(lat1,lon1,lat2,lon2){
  const R=6371000, r=Math.PI/180;
- const a=Math.sin((lat2-lat1)*r/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lon2-lon1)*r/2)**2;
+ const a=Math.sin((lat2-lat1)*r/2)**2+
+   Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lon2-lon1)*r/2)**2;
  return 2*R*Math.asin(Math.sqrt(a));
 }
-function gps(cb){
- if(!navigator.geolocation){alert("Bu tarayıcı konum bilgisini desteklemiyor.");return;}
- navigator.geolocation.getCurrentPosition(cb,e=>{
-  document.getElementById("status").className="status bad";
-  document.getElementById("status").textContent="Konum alınamadı: "+e.message;
- },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+
+function now(){
+ return new Date().toLocaleString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
 }
-function now(){return new Date().toLocaleString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
+
+function gps(success){
+ if(!navigator.geolocation){
+   statusEl.className="status bad";
+   statusEl.textContent="Bu tarayıcı konum bilgisini desteklemiyor.";
+   return;
+ }
+ statusEl.className="status";
+ statusEl.textContent="GPS konumu alınıyor...";
+ navigator.geolocation.getCurrentPosition(
+   success,
+   e=>{
+     statusEl.className="status bad";
+     statusEl.textContent="Konum alınamadı: "+e.message;
+   },
+   {enableHighAccuracy:true,timeout:20000,maximumAge:0}
+ );
+}
+
+if(p){
+ document.getElementById("producer").textContent=p.name;
+ startBtn.disabled=false;
+
+ // Sayfa yenilenirse aktif ziyareti hatırla.
+ const active=localStorage.getItem("activeVisit");
+ if(active){
+   try{
+     const v=JSON.parse(active);
+     if(v.producer===p.name){
+       startBtn.disabled=true;
+       endBtn.disabled=false;
+       statusEl.className="status ok";
+       statusEl.textContent="🟢 Aktif ziyaret devam ediyor. Ziyareti bitirebilirsiniz.";
+     }
+   }catch(e){}
+ }
+}
+
 function startVisit(){
- const p=producers[key];
- document.getElementById("status").className="status";
- document.getElementById("status").textContent="GPS konumu alınıyor...";
+ if(!p)return;
+
+ startBtn.disabled=true;
+
  gps(pos=>{
-   let d=null, verified=true;
-   if(p.lat!==null) { d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon)); verified=d<=300; }
-   document.getElementById("status").className="status "+(verified?"ok":"bad");
-   document.getElementById("status").innerHTML=verified?
-    "🟢 Konum doğrulandı<br>Mesafe: "+(d===null?"test modu":d+" metre"):
-    "🔴 Konum doğrulanamadı<br>Üreticiye uzaklık: "+d+" metre";
-   if(!verified){document.getElementById("start").disabled=false;return;}
-   let v={producer:p.name,action:"Giriş",time:now(),distance:d,lat:pos.coords.latitude,lon:pos.coords.longitude};
-   localStorage.setItem("activeVisit",JSON.stringify(v));
-   localStorage.setItem("activeVisit",JSON.stringify(v)); document.getElementById("start").disabled=true; document.getElementById("end").disabled=false;
+   const d=Math.round(distance(
+     pos.coords.latitude,pos.coords.longitude,p.lat,p.lon
+   ));
+
+   if(d>300){
+     statusEl.className="status bad";
+     statusEl.innerHTML="🔴 Konum doğrulanamadı<br>Üreticiye uzaklık: "+d+" metre";
+     startBtn.disabled=false;
+     return;
+   }
+
+   const visit={
+     producer:p.name,
+     startTime:now(),
+     startTimestamp:Date.now(),
+     startDistance:d,
+     startLat:pos.coords.latitude,
+     startLon:pos.coords.longitude
+   };
+
+   localStorage.setItem("activeVisit",JSON.stringify(visit));
+
+   statusEl.className="status ok";
+   statusEl.innerHTML="🟢 Ziyaret başladı<br>Mesafe: "+d+" metre<br>Başlangıç: "+visit.startTime;
+
+   // KRİTİK: GPS başarılı olur olmaz buton kesin olarak aktifleşir.
+   startBtn.disabled=true;
+   endBtn.disabled=false;
  });
 }
+
 function endVisit(){
- const p=producers[key];
+ if(!p)return;
+
+ endBtn.disabled=true;
+
  gps(pos=>{
-  let v=JSON.parse(localStorage.getItem("activeVisit")||"null");
-  if(!v){alert("Aktif ziyaret bulunamadı.");return;}
-  let d=null;if(p.lat!==null)d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon));
-  localStorage.removeItem("activeVisit");
-  localStorage.removeItem("activeVisit");document.getElementById("start").disabled=false;document.getElementById("end").disabled=true;
-  document.getElementById("status").className="status ok";document.getElementById("status").textContent="🟢 Ziyaret tamamlandı.";
+   const raw=localStorage.getItem("activeVisit");
+
+   if(!raw){
+     statusEl.className="status bad";
+     statusEl.textContent="Aktif ziyaret bulunamadı.";
+     endBtn.disabled=false;
+     return;
+   }
+
+   let visit;
+   try{visit=JSON.parse(raw);}catch(e){
+     localStorage.removeItem("activeVisit");
+     statusEl.className="status bad";
+     statusEl.textContent="Ziyaret kaydı okunamadı.";
+     endBtn.disabled=false;
+     return;
+   }
+
+   const d=Math.round(distance(
+     pos.coords.latitude,pos.coords.longitude,p.lat,p.lon
+   ));
+
+   const endTime=now();
+   const durationMs=Date.now()-visit.startTimestamp;
+   const minutes=Math.max(0,Math.round(durationMs/60000));
+
+   // Merkezi kayıt sistemi sonraki aşamada eklenecek.
+   // Şimdilik bu cihazda güvenli test amacıyla tutuluyor.
+   const completed={
+     producer:p.name,
+     startTime:visit.startTime,
+     endTime:endTime,
+     durationMinutes:minutes,
+     startDistance:visit.startDistance,
+     endDistance:d
+   };
+   localStorage.setItem("lastCompletedVisit",JSON.stringify(completed));
+   localStorage.removeItem("activeVisit");
+
+   statusEl.className="status ok";
+   statusEl.innerHTML=
+     "🟢 Ziyaret tamamlandı<br>"+
+     "Giriş: "+visit.startTime+"<br>"+
+     "Çıkış: "+endTime+"<br>"+
+     "Kalış süresi: "+minutes+" dakika";
+
+   startBtn.disabled=false;
+   endBtn.disabled=true;
  });
 }
-// Sayfa yenilense bile aktif ziyaretin bitirme butonu açık kalsın.
-if(active){ document.getElementById("start").disabled=true; document.getElementById("end").disabled=false; }
 </script>
-</body></html>
+</body>
+</html>
