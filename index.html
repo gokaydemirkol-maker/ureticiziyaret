@@ -16,16 +16,12 @@ table{width:100%;border-collapse:collapse;margin-top:15px}td,th{padding:8px;bord
 </head>
 <body>
 <div class="card">
-<h1>Üretici Ziyaret Sistemi — TEST</h1>
+<h1>Üretici Ziyaret Sistemi</h1>
 <div class="producer" id="producer">Üretici seçilmedi</div>
 <div class="status" id="status">QR ile giriş yapıldığında üretici burada görünecek.</div>
 <button id="start" onclick="startVisit()" disabled>ZİYARETE BAŞLA</button>
 <button id="end" onclick="endVisit()" disabled class="secondary">ZİYARETİ BİTİR</button>
 <div class="small" id="info"></div>
-<h3>Bu cihazdaki test kayıtları</h3>
-<table><thead><tr><th>Üretici</th><th>İşlem</th><th>Saat</th><th>Mesafe</th></tr></thead>
-<tbody id="log"></tbody></table>
-</div>
 <script>
 const producers={
   lod: {name:"Lodos Ayakkabı", lat:41.0391997259411, lon:28.806444996881826},
@@ -59,7 +55,7 @@ function startVisit(){
  document.getElementById("status").textContent="GPS konumu alınıyor...";
  gps(pos=>{
    let d=null, verified=true;
-   if(p.lat!==null) { d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon)); verified=d<=100; }
+   if(p.lat!==null) { d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon)); verified=d<=300; }
    document.getElementById("status").className="status "+(verified?"ok":"bad");
    document.getElementById("status").innerHTML=verified?
     "🟢 Konum doğrulandı<br>Mesafe: "+(d===null?"test modu":d+" metre"):
