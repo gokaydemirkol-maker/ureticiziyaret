@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Üretici Ziyaret Testi</title>
+<title>Üretici Ziyaret Sistemi</title>
 <style>
 body{font-family:Arial,sans-serif;background:#f4f6f8;margin:0;padding:20px;color:#17202a}
 .card{max-width:520px;margin:auto;background:white;border-radius:16px;padding:22px;box-shadow:0 4px 18px #0001}
@@ -32,7 +32,7 @@ let active=localStorage.getItem("activeVisit");
 if(key && producers[key]) {
  document.getElementById("producer").textContent=producers[key].name;
  document.getElementById("start").disabled=false;
- document.getElementById("status").textContent="Konumunuzu doğrulamak için 'Ziyarete Başla'ya basın.";
+ document.getElementById("status").textContent=active ? "Aktif ziyaret devam ediyor. Ziyareti bitirmek için aşağıdaki butona basın." : "Konumunuzu doğrulamak için 'Ziyarete Başla'ya basın.";
 }
 function distance(lat1,lon1,lat2,lon2){
  const R=6371000, r=Math.PI/180;
@@ -47,8 +47,6 @@ function gps(cb){
  },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
 }
 function now(){return new Date().toLocaleString("tr-TR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});}
-function save(x){let a=JSON.parse(localStorage.getItem("visits")||"[]");a.unshift(x);localStorage.setItem("visits",JSON.stringify(a));render();}
-function render(){let a=JSON.parse(localStorage.getItem("visits")||"[]");document.getElementById("log").innerHTML=a.map(x=>`<tr><td>${x.producer}</td><td>${x.action}</td><td>${x.time}</td><td>${x.distance??"-"}</td></tr>`).join("");}
 function startVisit(){
  const p=producers[key];
  document.getElementById("status").className="status";
@@ -63,7 +61,7 @@ function startVisit(){
    if(!verified){document.getElementById("start").disabled=false;return;}
    let v={producer:p.name,action:"Giriş",time:now(),distance:d,lat:pos.coords.latitude,lon:pos.coords.longitude};
    localStorage.setItem("activeVisit",JSON.stringify(v));
-   save(v); document.getElementById("start").disabled=true; document.getElementById("end").disabled=false;
+   localStorage.setItem("activeVisit",JSON.stringify(v)); document.getElementById("start").disabled=true; document.getElementById("end").disabled=false;
  });
 }
 function endVisit(){
@@ -72,11 +70,12 @@ function endVisit(){
   let v=JSON.parse(localStorage.getItem("activeVisit")||"null");
   if(!v){alert("Aktif ziyaret bulunamadı.");return;}
   let d=null;if(p.lat!==null)d=Math.round(distance(pos.coords.latitude,pos.coords.longitude,p.lat,p.lon));
-  save({producer:p.name,action:"Çıkış",time:now(),distance:d,lat:pos.coords.latitude,lon:pos.coords.longitude});
+  localStorage.removeItem("activeVisit");
   localStorage.removeItem("activeVisit");document.getElementById("start").disabled=false;document.getElementById("end").disabled=true;
   document.getElementById("status").className="status ok";document.getElementById("status").textContent="🟢 Ziyaret tamamlandı.";
  });
 }
-render();
+// Sayfa yenilense bile aktif ziyaretin bitirme butonu açık kalsın.
+if(active){ document.getElementById("start").disabled=true; document.getElementById("end").disabled=false; }
 </script>
 </body></html>
