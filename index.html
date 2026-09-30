@@ -18,18 +18,8 @@ button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-ra
 <h1>Üretici Ziyaret Sistemi</h1>
 <div style="margin:12px 0;">
   <label style="display:block;font-weight:600;margin-bottom:6px;">Personel</label>
-  <input id="employeeName" placeholder="Ad Soyad"
-         style="width:100%;box-sizing:border-box;padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px;">
+  <div style="width:100%;box-sizing:border-box;padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px;background:#f8fafc;">Tolgahan Özbek</div>
 </div>
-<script>
-(function(){
-  const el=document.getElementById("employeeName");
-  if(el){
-    el.value=localStorage.getItem("employeeName")||"";
-    el.addEventListener("input",()=>localStorage.setItem("employeeName",el.value.trim()));
-  }
-})();
-</script>
 
 <div class="producer" id="producer">Üretici seçilmedi</div>
 <div class="status" id="status">QR ile giriş yapıldığında üretici burada görünecek.</div>
@@ -45,6 +35,25 @@ button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-ra
    Örn: https://script.google.com/macros/s/XXXX/exec
 */
 const REPORT_API_URL = "https://script.google.com/macros/s/AKfycbxqRebF_6MjL9iHNLN575Sa-jW9Br07Y_CdgC-LAuoZruX-PCnQelpYOVhMww0Id7loUQ/exec";
+const FIXED_EMPLOYEE = "Tolgahan Özbek";
+
+function getDeviceInfo(){
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  let device = "Bilinmeyen cihaz";
+
+  if (/iPhone/i.test(ua)) device = "Apple iPhone";
+  else if (/iPad/i.test(ua)) device = "Apple iPad";
+  else if (/Android/i.test(ua)) {
+    const m = ua.match(/Android[^;)]*;\s*(?:[a-z]{2}(?:-[A-Z]{2})?;\s*)?([^;)]+?)(?:\s+Build\/[^;)]+)?[;)]/i);
+    device = m && m[1] ? m[1].trim() : "Android telefon";
+    device = device.replace(/^wv\)$/i, "Android telefon");
+  } else if (/Windows/i.test(ua)) device = "Windows PC";
+  else if (/Macintosh/i.test(ua)) device = "Mac";
+
+  return device + (platform ? " | " + platform : "");
+}
+
 
 function sendReport(data) {
   if (!REPORT_API_URL || REPORT_API_URL.includes("BURAYA_")) return;
@@ -174,7 +183,8 @@ function startVisit(){
      producer:p.name,
      producerKey:key,
      entryIso:new Date(visit.startTimestamp).toISOString(),
-     employee:localStorage.getItem("employeeName")||"Personel",
+     employee:FIXED_EMPLOYEE,
+     device:getDeviceInfo(),
      distanceMeters:d
    });
 
@@ -227,7 +237,8 @@ function endVisit(){
      exitIso:new Date().toISOString(),
      durationMinutes:minutes,
      distanceMeters:d,
-     employee:localStorage.getItem("employeeName")||"Personel"
+     employee:FIXED_EMPLOYEE,
+     device:getDeviceInfo()
    });
 
    const completed={
