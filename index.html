@@ -17,10 +17,9 @@ button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-ra
 <div class="card">
 <h1>Üretici Ziyaret Sistemi</h1>
 <div style="margin:12px 0;">
-  <label style="display:block;font-weight:600;margin-bottom:6px;">Personel</label>
-  <div style="width:100%;box-sizing:border-box;padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px;background:#f8fafc;">Tolgahan Özbek</div>
+<label style="display:block;font-weight:600;margin-bottom:6px;">Personel</label>
+<div style="width:100%;box-sizing:border-box;padding:14px;border:1px solid #ddd;border-radius:12px;font-size:16px;background:#f8fafc;">Tolgahan Özbek</div>
 </div>
-
 <div class="producer" id="producer">Üretici seçilmedi</div>
 <div class="status" id="status">QR ile giriş yapıldığında üretici burada görünecek.</div>
 <button id="start" onclick="startVisit()" disabled>ZİYARETE BAŞLA</button>
@@ -28,66 +27,39 @@ button.secondary{background:#e5e7eb;color:#111827}.status{padding:12px;border-ra
 <div class="small" id="info"></div>
 </div>
 
-
 <script>
-/* ===== MERKEZI RAPOR AYARLARI =====
-   Google Apps Script Web App URL'sini buraya yapıştırın.
-   Örn: https://script.google.com/macros/s/XXXX/exec
-*/
 const REPORT_API_URL = "https://script.google.com/macros/s/AKfycbxqRebF_6MjL9iHNLN575Sa-jW9Br07Y_CdgC-LAuoZruX-PCnQelpYOVhMww0Id7loUQ/exec";
 const FIXED_EMPLOYEE = "Tolgahan Özbek";
 
 function getDeviceInfo(){
-  const ua = navigator.userAgent || "";
-  const platform = navigator.platform || "";
-  let device = "Bilinmeyen cihaz";
-
-  if (/iPhone/i.test(ua)) device = "Apple iPhone";
-  else if (/iPad/i.test(ua)) device = "Apple iPad";
-  else if (/Android/i.test(ua)) {
-    const m = ua.match(/Android[^;)]*;\s*(?:[a-z]{2}(?:-[A-Z]{2})?;\s*)?([^;)]+?)(?:\s+Build\/[^;)]+)?[;)]/i);
-    device = m && m[1] ? m[1].trim() : "Android telefon";
-    device = device.replace(/^wv\)$/i, "Android telefon");
-  } else if (/Windows/i.test(ua)) device = "Windows PC";
-  else if (/Macintosh/i.test(ua)) device = "Mac";
-
-  return device + (platform ? " | " + platform : "");
+  const ua=navigator.userAgent||"";
+  const platform=navigator.platform||"";
+  let device="Bilinmeyen cihaz";
+  if(/iPhone/i.test(ua)) device="Apple iPhone";
+  else if(/iPad/i.test(ua)) device="Apple iPad";
+  else if(/Android/i.test(ua)){
+    const m=ua.match(/Android[^;)]*;\s*(?:[a-z]{2}(?:-[A-Z]{2})?;\s*)?([^;)]+?)(?:\s+Build\/[^;)]+)?[;)]/i);
+    device=m&&m[1]?m[1].trim():"Android telefon";
+    device=device.replace(/^wv\)$/i,"Android telefon");
+  } else if(/Windows/i.test(ua)) device="Windows PC";
+  else if(/Macintosh/i.test(ua)) device="Mac";
+  return device+(platform?" | "+platform:"");
 }
 
-
-function sendReport(data) {
-  if (!REPORT_API_URL || REPORT_API_URL.includes("BURAYA_")) return;
-
-  // GitHub Pages -> Google Apps Script arasında CORS/fetch sorunlarını
-  // önlemek için klasik form POST kullanılır.
-  try {
-    const iframeName = "report_" + Date.now();
-    const iframe = document.createElement("iframe");
-    iframe.name = iframeName;
-    iframe.style.display = "none";
+function sendReport(data){
+  if(!REPORT_API_URL||REPORT_API_URL.includes("BURAYA_"))return;
+  try{
+    const iframeName="report_"+Date.now();
+    const iframe=document.createElement("iframe");
+    iframe.name=iframeName; iframe.style.display="none";
     document.body.appendChild(iframe);
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = REPORT_API_URL;
-    form.target = iframeName;
-    form.style.display = "none";
-
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = "payload";
-    input.value = JSON.stringify(data);
-
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-
-    setTimeout(() => {
-      try { form.remove(); iframe.remove(); } catch(e) {}
-    }, 5000);
-  } catch (e) {
-    console.log("Rapor gönderilemedi:", e);
-  }
+    const form=document.createElement("form");
+    form.method="POST"; form.action=REPORT_API_URL; form.target=iframeName; form.style.display="none";
+    const input=document.createElement("input");
+    input.type="hidden"; input.name="payload"; input.value=JSON.stringify(data);
+    form.appendChild(input); document.body.appendChild(form); form.submit();
+    setTimeout(()=>{try{form.remove();iframe.remove()}catch(e){}},5000);
+  }catch(e){console.log("Rapor gönderilemedi:",e);}
 }
 </script>
 
@@ -109,7 +81,7 @@ const endBtn=document.getElementById("end");
 const statusEl=document.getElementById("status");
 
 function distance(lat1,lon1,lat2,lon2){
- const R=6371000, r=Math.PI/180;
+ const R=6371000,r=Math.PI/180;
  const a=Math.sin((lat2-lat1)*r/2)**2+
    Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lon2-lon1)*r/2)**2;
  return 2*R*Math.asin(Math.sqrt(a));
@@ -140,8 +112,6 @@ function gps(success){
 if(p){
  document.getElementById("producer").textContent=p.name;
  startBtn.disabled=false;
-
- // Sayfa yenilenirse aktif ziyareti hatırla.
  const active=localStorage.getItem("activeVisit");
  if(active){
    try{
@@ -158,7 +128,6 @@ if(p){
 
 function startVisit(){
  if(!p)return;
-
  startBtn.disabled=true;
 
  gps(pos=>{
@@ -183,6 +152,7 @@ function startVisit(){
    };
 
    localStorage.setItem("activeVisit",JSON.stringify(visit));
+
    sendReport({
      type:"START",
      producer:p.name,
@@ -190,13 +160,13 @@ function startVisit(){
      entryIso:new Date(visit.startTimestamp).toISOString(),
      employee:FIXED_EMPLOYEE,
      device:getDeviceInfo(),
-     distanceMeters:d
+     distanceMeters:d,
+     latitude:pos.coords.latitude,
+     longitude:pos.coords.longitude
    });
 
    statusEl.className="status ok";
    statusEl.innerHTML="🟢 Ziyaret başladı<br>Mesafe: "+d+" metre<br>Başlangıç: "+visit.startTime;
-
-   // KRİTİK: GPS başarılı olur olmaz buton kesin olarak aktifleşir.
    startBtn.disabled=true;
    endBtn.disabled=false;
  });
@@ -204,69 +174,65 @@ function startVisit(){
 
 function endVisit(){
  if(!p)return;
-
  endBtn.disabled=true;
 
- gps(pos=>{
-   const raw=localStorage.getItem("activeVisit");
+ const raw=localStorage.getItem("activeVisit");
 
-   if(!raw){
-     statusEl.className="status bad";
-     statusEl.textContent="Aktif ziyaret bulunamadı.";
-     endBtn.disabled=false;
-     return;
-   }
+ if(!raw){
+   statusEl.className="status bad";
+   statusEl.textContent="Aktif ziyaret bulunamadı.";
+   endBtn.disabled=false;
+   return;
+ }
 
-   let visit;
-   try{visit=JSON.parse(raw);}catch(e){
-     localStorage.removeItem("activeVisit");
-     statusEl.className="status bad";
-     statusEl.textContent="Ziyaret kaydı okunamadı.";
-     endBtn.disabled=false;
-     return;
-   }
-
-   const d=Math.round(distance(
-     pos.coords.latitude,pos.coords.longitude,p.lat,p.lon
-   ));
-
-   const endTime=now();
-   const durationMs=Date.now()-visit.startTimestamp;
-   const minutes=Math.max(0,Math.round(durationMs/60000));
-
-   sendReport({
-     type:"FINISH",
-     producer:p.name,
-     producerKey:key,
-     entryIso:new Date(visit.startTimestamp).toISOString(),
-     exitIso:new Date().toISOString(),
-     durationMinutes:minutes,
-     distanceMeters:d,
-     employee:FIXED_EMPLOYEE,
-     device:getDeviceInfo()
-   });
-
-   const completed={
-     producer:p.name,
-     startTime:visit.startTime,
-     endTime:endTime,
-     durationMinutes:minutes,
-     startDistance:visit.startDistance,
-     endDistance:d
-   };
-   localStorage.setItem("lastCompletedVisit",JSON.stringify(completed));
+ let visit;
+ try{
+   visit=JSON.parse(raw);
+ }catch(e){
    localStorage.removeItem("activeVisit");
+   statusEl.className="status bad";
+   statusEl.textContent="Ziyaret kaydı okunamadı.";
+   endBtn.disabled=false;
+   return;
+ }
 
-   statusEl.className="status ok";
-   statusEl.innerHTML=
-     "🟢 Ziyaret tamamlandı<br>"+
-     "Giriş: "+visit.startTime+"<br>"+
-     "Çıkış: "+endTime+"<br>"+
-     "Kalış süresi: "+minutes+" dakika";
+ const endTime=now();
+ const durationMs=Date.now()-visit.startTimestamp;
+ const minutes=Math.max(0,Math.round(durationMs/60000));
 
-   startBtn.disabled=false;
-   endBtn.disabled=true;
+ sendReport({
+   type:"FINISH",
+   producer:p.name,
+   producerKey:key,
+   entryIso:new Date(visit.startTimestamp).toISOString(),
+   exitIso:new Date().toISOString(),
+   durationMinutes:minutes,
+   employee:FIXED_EMPLOYEE,
+   device:getDeviceInfo()
  });
+
+ const completed={
+   producer:p.name,
+   startTime:visit.startTime,
+   endTime:endTime,
+   durationMinutes:minutes,
+   startDistance:visit.startDistance,
+   startLat:visit.startLat,
+   startLon:visit.startLon
+ };
+
+ localStorage.setItem("lastCompletedVisit",JSON.stringify(completed));
+ localStorage.removeItem("activeVisit");
+
+ statusEl.className="status ok";
+ statusEl.innerHTML=
+   "🟢 Ziyaret tamamlandı<br>"+
+   "Giriş: "+visit.startTime+"<br>"+
+   "Çıkış: "+endTime+"<br>"+
+   "Kalış süresi: "+minutes+" dakika";
+
+ startBtn.disabled=false;
+ endBtn.disabled=true;
 }
 </script>
 </body>
